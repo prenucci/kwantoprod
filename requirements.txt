@@ -1,0 +1,13 @@
+pandas>=2.0.0
+ib_async>=0.9.70
+ray>=2.8.0
+
+# Custom trading libraries
+git+https://github.com/cnernc/kwantlib.git
+git+https://github.com/prenucci/kwantomaton.git
+
+# Additional dependencies for quantitative trading
+numpy>=1.24.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
+jupyter>=1.0.0 
