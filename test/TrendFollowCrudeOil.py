@@ -132,7 +132,10 @@ def SimulateSignal(
     ) -> pd.DataFrame:
 
     assert ib_client.isConnected(), 'Failed to connect to IB'    
-    return pd.concat({date: signal.get_value(date) for date in date_range}, axis=1).T
+    return pd.concat({
+        date: signal.get_value(date) 
+        for date in date_range
+    }, axis=1).T
 
 
 def ExecuteSignal(signal: BaseSignal, ib_client: ib.IB) -> None:
