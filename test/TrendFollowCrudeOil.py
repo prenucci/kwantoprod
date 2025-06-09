@@ -11,14 +11,11 @@ def get_all_contracts_from_IB(
     ) -> list[ib.Future]:
         
         """
-        Get all the future contracts that are valid for the given date 
-        at least n_days_before_expiration days before the expiration date.
-        The contracts are sorted by expiration date.
+        Get all the future contracts that are valid for a given date. 
+        Valid means that the date is at least n_days_before_expiration days 
+        before the expiration date.
 
-        Args:
-            contract: The base contract to get the contracts for.
-            date: The date to get the contracts for.
-            IBclient: The IB client to use.
+        The contracts are sorted by expiration date.
         """
     
         if isinstance(date, str):
@@ -49,13 +46,8 @@ def get_front_month_contract_from_IB(
     ) -> ib.Future:
 
     """
-    Get the n_th_contrat contract for the given date. 
-
-    Args:
-        contract: The base contract to get the contracts for.
-        date: The date to get the contracts for.
-        IBclient: The IB client to use.
-        n_th_contrat: The n_th contract to get.
+    Get the n_th_contrat front month contract for the given date. 
+    Which expires in at least n_days_before_expiration days.
     """
     
     return get_all_contracts_from_IB(
@@ -108,7 +100,7 @@ class CrudeOilTFSignal(BaseSignal):
         self.close = df['close'].astype(float)  
         self.close.index = pd.to_datetime(df.index)  
 
-    def get_value(self, date: str | datetime | pd.Timestamp) -> pd.Series:
+    def get_value(self, date: str | datetime | pd.Timestamp) -> float:
 
         if isinstance(date, str):
             date = pd.to_datetime(date)
@@ -122,64 +114,4 @@ class CrudeOilTFSignal(BaseSignal):
         ma_long_term = long_term_group.mean().iloc[-1] 
         std_long_term = long_term_group.std().iloc[-1] 
 
-        return pd.Series({'CL': ( ma_short_term - ma_long_term ) / std_long_term })
-    
-    
-def SimulateSignal(
-        signal: BaseSignal, 
-        date_range: list[str | datetime | pd.Timestamp] | pd.DatetimeIndex,
-        ib_client: ib.IB
-    ) -> pd.DataFrame:
-
-    assert ib_client.isConnected(), 'Failed to connect to IB'    
-    return pd.concat({
-        date: signal.get_value(date) 
-        for date in date_range
-    }, axis=1).T
-
-
-def ExecuteSignal(signal: BaseSignal, ib_client: ib.IB) -> None:
-
-        def _get_pos_on_contract(
-                all_positions: list[ib.Position], contract: ib.Future
-            ) -> int:
-            for pos in all_positions:
-                if (
-                    pos.contract.symbol == contract.symbol 
-                    and 
-                    pos.contract.lastTradeDateOrContractMonth == contract.lastTradeDateOrContractMonth
-                    ):
-                    return pos.position
-            return 0
-
-        def _place_order(qtity_to_buy: int) -> None:
-            if qtity_to_buy == 0:
-                return
-            elif qtity_to_buy > 0:
-                order = ib.MarketOrder('BUY', qtity_to_buy)
-            elif qtity_to_buy < 0:
-                order = ib.MarketOrder('SELL', -qtity_to_buy)
-            print(f"Placing order for {qtity_to_buy} of {signal.contract}")
-            ib_client.placeOrder(signal.contract, order)
-
-
-        assert ib_client.isConnected(), 'Failed to connect to IB'
-
-        today = pd.Timestamp.now()
-        target_position = signal.get_value(today)['CL']
-
-        current_position = _get_pos_on_contract(
-            ib_client.positions(), signal.contract
-        )
-        _place_order(qtity_to_buy = int(target_position - current_position))
-
-        final_position = _get_pos_on_contract(
-            ib_client.positions(), signal.contract
-        )
-        assert (
-            final_position == int(target_position)
-        ), f'Position not updated correctly. Expected: {target_position}, Got: {final_position}'
-
-
-
-    
+        return ( ma_short_term - ma_long_term ) / std_long_term 
