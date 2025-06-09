@@ -1,6 +1,5 @@
 pandas>=2.0.0
 ib_async>=0.9.70
-ray>=2.8.0
 
 # Custom trading libraries
 git+https://github.com/cnernc/kwantlib.git
